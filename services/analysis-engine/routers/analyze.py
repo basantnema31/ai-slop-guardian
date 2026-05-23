@@ -19,7 +19,8 @@ class AnalysisCache:
     def __init__(self, ttl_seconds: int = 300, max_size: int = 1000):
         self.ttl_seconds = ttl_seconds
         self.max_size = max_size
-        self._cache: Dict[str, Tuple[AnalyzeResponse, float]] = {}  # key -> (response, expiry_time)
+        # key -> (response, expiry_time)
+        self._cache: Dict[str, Tuple[AnalyzeResponse, float]] = {}
         self._lock = asyncio.Lock()
 
     async def get(self, key: str) -> Optional[AnalyzeResponse]:
@@ -36,7 +37,9 @@ class AnalysisCache:
         async with self._lock:
             now = time.time()
             # Clean expired items
-            expired_keys = [k for k, (_, exp) in self._cache.items() if now > exp]
+            expired_keys = [
+                k for k, (_, exp) in self._cache.items() if now > exp
+            ]
             for k in expired_keys:
                 del self._cache[k]
 
@@ -62,7 +65,8 @@ def generate_cache_key(request: AnalyzeRequest) -> str:
         return f"{request.repo_id}:commit:{request.commit_hash}"
     else:
         # Fallback to SHA256 of content
-        content_sha = hashlib.sha256(request.content.encode("utf-8")).hexdigest()
+        content_bytes = request.content.encode("utf-8")
+        content_sha = hashlib.sha256(content_bytes).hexdigest()
         return f"{request.repo_id}:content:{content_sha}"
 
 

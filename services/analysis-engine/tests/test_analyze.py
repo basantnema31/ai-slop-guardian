@@ -10,11 +10,13 @@ from main import app  # noqa: E402
 from routers.analyze import ensemble  # noqa: E402
 from models.schemas import AnalyzeResponse  # noqa: E402
 
-from unittest.mock import MagicMock
-from db.database import get_db
+from unittest.mock import MagicMock  # noqa: E402
+from db.database import get_db  # noqa: E402
+
 
 def override_get_db():
     yield MagicMock()
+
 
 app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
@@ -57,7 +59,6 @@ def test_analyze_endpoint_mocked():
 
 
 def test_analyze_cache_hit():
-    import time
     from unittest.mock import AsyncMock
     from routers.analyze import analysis_cache
 
@@ -97,7 +98,8 @@ def test_analyze_cache_hit():
             # Second request (identical) - Cache Hit
             response2 = client.post("/analyze/", json=payload)
             assert response2.status_code == 200
-            # call_count should STILL be 1 because it bypassed the ensemble analyzer!
+            # call_count should STILL be 1 because it bypassed
+            # the ensemble analyzer
             assert mock_analyze.call_count == 1
 
             data2 = response2.json()
@@ -208,4 +210,3 @@ def test_analyze_cache_ttl():
             response2 = client.post("/analyze/", json=payload)
             assert response2.status_code == 200
             assert mock_analyze.call_count == 2
-

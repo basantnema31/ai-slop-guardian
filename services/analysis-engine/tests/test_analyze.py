@@ -1,6 +1,6 @@
 import sys
 import os
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 # Add the parent directory to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -9,14 +9,10 @@ from fastapi.testclient import TestClient  # noqa: E402
 from main import app  # noqa: E402
 from routers.analyze import ensemble  # noqa: E402
 from models.schemas import AnalyzeResponse  # noqa: E402
-
-from unittest.mock import MagicMock  # noqa: E402
 from db.database import get_db  # noqa: E402
-
 
 def override_get_db():
     yield MagicMock()
-
 
 app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
@@ -62,7 +58,9 @@ def test_analyze_cache_hit():
     from unittest.mock import AsyncMock
     from routers.analyze import analysis_cache
 
-    analysis_cache._cache.clear()
+    # Wait, analysis_cache is an instance of AnalysisCache. Since the methods are async, we might need async tests or just patch _cache
+    import asyncio
+    asyncio.run(analysis_cache.clear())
 
     mock_res_obj = AnalyzeResponse(
         overall_score=0.80,
@@ -110,8 +108,8 @@ def test_analyze_cache_hit():
 def test_analyze_cache_miss():
     from unittest.mock import AsyncMock
     from routers.analyze import analysis_cache
-
-    analysis_cache._cache.clear()
+    import asyncio
+    asyncio.run(analysis_cache.clear())
 
     mock_res_obj = AnalyzeResponse(
         overall_score=0.80,
@@ -164,8 +162,8 @@ def test_analyze_cache_ttl():
     import time
     from unittest.mock import AsyncMock
     from routers.analyze import analysis_cache
-
-    analysis_cache._cache.clear()
+    import asyncio
+    asyncio.run(analysis_cache.clear())
 
     mock_res_obj = AnalyzeResponse(
         overall_score=0.80,

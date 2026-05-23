@@ -6,16 +6,16 @@ import os
 # Add the parent directory to sys.path to ensure modules can be found
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Mock EnsembleDetector init at module level to prevent heavy models from loading during pytest collection
+import detectors.ensemble
+def mock_ensemble_init(self, *args, **kwargs):
+    self.detectors = []
+detectors.ensemble.EnsembleDetector.__init__ = mock_ensemble_init
 
 @pytest.fixture(autouse=True)
 def mock_ensemble():
-    """Globally mock EnsembleDetector to avoid loading models."""
-    # Prevent __init__ from instantiating heavy detectors.
-    with patch(
-        "detectors.ensemble.EnsembleDetector.__init__",
-        return_value=None,
-    ):
-        yield
+    """Legacy fixture kept for compatibility but mock is now global."""
+    yield
 
 
 @pytest.fixture(autouse=True)

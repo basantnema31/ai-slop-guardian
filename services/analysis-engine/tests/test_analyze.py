@@ -10,6 +10,13 @@ from main import app  # noqa: E402
 from routers.analyze import ensemble  # noqa: E402
 from models.schemas import AnalyzeResponse  # noqa: E402
 
+from unittest.mock import MagicMock
+from db.database import get_db
+
+def override_get_db():
+    yield MagicMock()
+
+app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
 
 

@@ -11,8 +11,10 @@ from routers.analyze import ensemble  # noqa: E402
 from models.schemas import AnalyzeResponse  # noqa: E402
 from db.database import get_db  # noqa: E402
 
+
 def override_get_db():
     yield MagicMock()
+
 
 app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
@@ -58,7 +60,9 @@ def test_analyze_cache_hit():
     from unittest.mock import AsyncMock
     from routers.analyze import analysis_cache
 
-    # Wait, analysis_cache is an instance of AnalysisCache. Since the methods are async, we might need async tests or just patch _cache
+    # Wait, analysis_cache is an instance of AnalysisCache.
+    # Since the methods are async, we might need async tests
+    # or just patch _cache
     import asyncio
     asyncio.run(analysis_cache.clear())
 

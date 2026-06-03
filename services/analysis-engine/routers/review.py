@@ -5,7 +5,13 @@ import os
 from groq import Groq
 import json
 
+from cache.llm_cache import LLMCache
+
 router = APIRouter()
+
+# Module-level cache shared across all requests.
+# max_size=256 entries, TTL=2 hours — review responses rarely need longer.
+_review_cache: LLMCache = LLMCache(max_size=256, ttl_seconds=7200)
 
 
 def _get_client() -> Groq | None:
@@ -33,6 +39,20 @@ async def generate_review(request: ReviewRequest):
             detail="GROQ_API_KEY is not configured",
         )
     labels_str = ", ".join(request.pr_labels) if request.pr_labels else "None"
+
+    # --- Cache lookup -------------------------------------------------
+    cache_key = LLMCache.make_key(
+        request.diff[:6000],
+        request.pr_title,
+        request.pr_body,
+        labels_str,
+        model="llama-3.3-70b-versatile",
+        slop_score=str(round(request.slop_score, 2)),
+    )
+    cached = _review_cache.get(cache_key)
+    if cached is not None:
+        return cached
+    # ------------------------------------------------------------------
 
     system_prompt = (
         "You are a senior code reviewer for an open source project.\n\n"
@@ -87,7 +107,25 @@ async def generate_review(request: ReviewRequest):
             content = content.split("```")[1].split("```")[0].strip()
 
         data = json.loads(content, strict=False)
+
+        # --- Store result in cache before returning -------------------
+        _review_cache.set(cache_key, data)
+        # --------------------------------------------------------------
+
         return data
     except Exception as e:
         print(f"Review Generation Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/cache/stats")
+async def review_cache_stats():
+    """Return live statistics for the review LLM response cache."""
+    return _review_cache.stats()
+
+
+@router.delete("/cache")
+async def clear_review_cache():
+    """Flush all cached review responses (admin/debug use)."""
+    _review_cache.clear()
+    return {"message": "Review cache cleared"}
